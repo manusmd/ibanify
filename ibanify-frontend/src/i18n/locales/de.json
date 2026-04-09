@@ -1,0 +1,61 @@
+{
+  "access": {
+    "title": "Zugang",
+    "description": "Geben Sie das Passwort ein, um IBANify zu öffnen.",
+    "passwordLabel": "Passwort",
+    "submit": "Weiter",
+    "error": "Passwort ist falsch.",
+    "checking": "Wird geladen…"
+  },
+  "app": {
+    "title": "IBANify",
+    "tagline": "Prüfen Sie, ob eine IBAN gültig ist und zu welcher Bank sie gehört.",
+    "documentTitle": "IBANify"
+  },
+  "lang": {
+    "switch": "Sprache",
+    "en": "English",
+    "de": "Deutsch"
+  },
+  "form": {
+    "ibanLabel": "IBAN",
+    "placeholder": "z. B. DE89 3704 0044 0532 0130 00",
+    "hint": "Einfügen mit Leerzeichen oder Bindestrichen ist möglich.",
+    "submit": "IBAN prüfen",
+    "submitLoading": "Wird geprüft…",
+    "submitRevealing": "Fast fertig…",
+    "examplesTitle": "Beispiel-IBANs",
+    "examples": {
+      "dkbb": "Deutsche Kreditbank Berlin",
+      "ing": "ING-DiBa",
+      "lbb": "Landesbank Berlin",
+      "targobank": "Targobank",
+      "haspa": "Hamburger Sparkasse"
+    }
+  },
+  "result": {
+    "valid": "Gültig",
+    "invalid": "Ungültig",
+    "bankDetails": "Bankdaten",
+    "postalCode": "PLZ",
+    "city": "Ort",
+    "bankCode": "Bankleitzahl",
+    "bic": "BIC",
+    "logoAlt": "Banklogo",
+    "logoAltNamed": "Logo: {{name}}"
+  },
+  "structure": {
+    "title": "IBAN-Aufbau",
+    "iban": "IBAN",
+    "country": "Ländercode",
+    "check": "Prüfziffern",
+    "bankCode": "Bankleitzahl (BLZ)",
+    "account": "Kontonummer",
+    "bban": "Inlandsanteil (BBAN)"
+  },
+  "errors": {
+    "network": "Bitte Verbindung prüfen und erneut versuchen.",
+    "httpStatus": "Anfrage fehlgeschlagen ({{status}}).",
+    "generic": "Etwas ist schiefgelaufen."
+  }
+}

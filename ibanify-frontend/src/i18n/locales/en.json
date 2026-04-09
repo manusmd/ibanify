@@ -1,0 +1,61 @@
+{
+  "access": {
+    "title": "Sign in",
+    "description": "Enter the password to open IBANify.",
+    "passwordLabel": "Password",
+    "submit": "Continue",
+    "error": "Incorrect password.",
+    "checking": "Loading…"
+  },
+  "app": {
+    "title": "IBANify",
+    "tagline": "See if an IBAN is valid and which bank it belongs to.",
+    "documentTitle": "IBANify"
+  },
+  "lang": {
+    "switch": "Language",
+    "en": "English",
+    "de": "Deutsch"
+  },
+  "form": {
+    "ibanLabel": "IBAN",
+    "placeholder": "e.g. DE89 3704 0044 0532 0130 00",
+    "hint": "You can paste with spaces or dashes.",
+    "submit": "Check IBAN",
+    "submitLoading": "Checking…",
+    "submitRevealing": "Almost done…",
+    "examplesTitle": "Example IBANs",
+    "examples": {
+      "dkbb": "Deutsche Kreditbank Berlin",
+      "ing": "ING-DiBa",
+      "lbb": "Landesbank Berlin",
+      "targobank": "Targobank",
+      "haspa": "Hamburger Sparkasse"
+    }
+  },
+  "result": {
+    "valid": "Valid",
+    "invalid": "Not valid",
+    "bankDetails": "Bank details",
+    "postalCode": "Postal code",
+    "city": "City",
+    "bankCode": "Bank code",
+    "bic": "BIC",
+    "logoAlt": "Bank logo",
+    "logoAltNamed": "{{name}} logo"
+  },
+  "structure": {
+    "title": "IBAN structure",
+    "iban": "IBAN",
+    "country": "Country code",
+    "check": "Check digits",
+    "bankCode": "Bank code (BLZ)",
+    "account": "Account number",
+    "bban": "National part (BBAN)"
+  },
+  "errors": {
+    "network": "Check your connection and try again.",
+    "httpStatus": "Request failed ({{status}}).",
+    "generic": "Something went wrong."
+  }
+}
