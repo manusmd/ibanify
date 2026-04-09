@@ -1,0 +1,3 @@
+ibanify-core/gradlew text eol=lf
+ibanify-core/*.bat text eol=crlf
+*.jar binary
