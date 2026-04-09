@@ -25,3 +25,16 @@ git config core.hooksPath ibanify-frontend/.husky
 | ------------------ | ------------------------- |
 | `ibanify-core/`    | REST-API, OpenIBAN, usw. |
 | `ibanify-frontend/` | SPA, Vite, React         |
+
+## Docker
+
+Lokal bauen und starten (mit Build aus dem Repo):
+
+```bash
+docker compose up --build
+```
+
+- **Web:** Port 80 → Nginx serviert die SPA und leitet `/api/*` an den Container `api` weiter (kein `VITE_API_BASE_URL` nötig).
+- **API:** Port 8080, Healthcheck über Spring Actuator.
+
+**`docker-compose.prod.yml`** startet dieselben Services aus **vorgepullten Images** (`API_IMAGE`, `WEB_IMAGE`). Für einen TLS-Reverse-Proxy liegt eine Nginx-Vhost-Vorlage unter **`deploy/nginx-proxy-site.template`**.
