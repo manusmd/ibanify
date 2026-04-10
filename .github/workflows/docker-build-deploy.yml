@@ -154,11 +154,14 @@ jobs:
           target: ${{ secrets.DEPLOY_PATH }}/
 
       - name: Pull and start IBANify stack
+        env:
+          BRANDFETCH_CLIENT_ID: ${{ secrets.BRANDFETCH_CLIENT_ID }}
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: BRANDFETCH_CLIENT_ID
           script_stop: true
           script: |
             if [ -n "${{ secrets.GHCR_READ_TOKEN }}" ]; then
@@ -167,6 +170,7 @@ jobs:
             cd "${{ secrets.DEPLOY_PATH }}"
             export API_IMAGE="${{ needs.build-push.outputs.api_image }}"
             export WEB_IMAGE="${{ needs.build-push.outputs.web_image }}"
+            export BRANDFETCH_CLIENT_ID
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
