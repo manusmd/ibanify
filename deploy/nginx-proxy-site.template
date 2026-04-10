@@ -1,9 +1,10 @@
 server {
-    listen 443 ssl http2;
+    listen 443 ssl;
+    http2 on;
     server_name ${PUBLIC_DOMAIN};
 
-    ssl_certificate     ${SSL_CERT_ROOT}/${PUBLIC_DOMAIN}/fullchain.pem;
-    ssl_certificate_key ${SSL_CERT_ROOT}/${PUBLIC_DOMAIN}/privkey.pem;
+    ssl_certificate     ${SSL_CERT_ROOT}/${SSL_CERT_LIVE_SUBDIR}/fullchain.pem;
+    ssl_certificate_key ${SSL_CERT_ROOT}/${SSL_CERT_LIVE_SUBDIR}/privkey.pem;
 
     location / {
         proxy_pass http://ibanify-web:80;

@@ -17,6 +17,8 @@ ibanify-frontend/lerna-debug.log*
 /PRESENTATION_BACKEND.md
 /PRESENTATION_FRONTEND.md
 
+/ibanify-nginx-site.conf
+
 ibanify-core/.gradle/
 ibanify-core/build/
 ibanify-core/out/

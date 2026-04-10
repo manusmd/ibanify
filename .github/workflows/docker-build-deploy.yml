@@ -58,6 +58,8 @@ jobs:
           push: true
           build-args: |
             VITE_API_BASE_URL=
+            VITE_ACCESS_PASSWORD=${{ secrets.VITE_ACCESS_PASSWORD }}
+            CI_CACHE_BUST=${{ github.run_id }}-${{ github.run_attempt }}
           tags: |
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.owner_lc }}/ibanify-web:${{ github.sha }}
             ${{ env.REGISTRY }}/${{ steps.vars.outputs.owner_lc }}/ibanify-web:latest
@@ -71,11 +73,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - id: npm_ssl
+        name: Discover NPM cert live subdir from proxy_host
+        if: vars.DEPLOY_NGINX_SITE == 'true' && vars.NGINX_PROXY_CONTAINER != '' && vars.PUBLIC_DOMAIN != '' && vars.SSL_CERT_LIVE_SUBDIR == ''
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/discover_key
+          chmod 600 ~/.ssh/discover_key
+          TMP_OUT=$(mktemp)
+          TMP_ERR=$(mktemp)
+          set +e
+          ssh -i ~/.ssh/discover_key -o StrictHostKeyChecking=no \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            sh -s -- "${{ vars.NGINX_PROXY_CONTAINER }}" "${{ vars.PUBLIC_DOMAIN }}" \
+            < deploy/discover-npm-cert-subdir.sh >"$TMP_OUT" 2>"$TMP_ERR"
+          EC=$?
+          set -e
+          if [ "$EC" -ne 0 ] || [ ! -s "$TMP_OUT" ]; then
+            echo "::error::Discover failed (remote exit ${EC})."
+            cat "$TMP_ERR" >&2 || true
+            cat "$TMP_OUT" >&2 || true
+            rm -f "$TMP_OUT" "$TMP_ERR"
+            exit 1
+          fi
+          SUBDIR=$(tr -d '\r\n' <"$TMP_OUT")
+          rm -f "$TMP_OUT" "$TMP_ERR"
+          echo "subdir=${SUBDIR}" >> "$GITHUB_OUTPUT"
+
       - name: Render nginx reverse-proxy vhost
         if: vars.DEPLOY_NGINX_SITE == 'true'
         env:
           PUBLIC_DOMAIN: ${{ vars.PUBLIC_DOMAIN }}
           SSL_CERT_ROOT: ${{ vars.SSL_CERT_ROOT }}
+          SSL_CERT_LIVE_SUBDIR_MANUAL: ${{ vars.SSL_CERT_LIVE_SUBDIR }}
+          SSL_CERT_LIVE_SUBDIR_DISCOVERED: ${{ steps.npm_ssl.outputs.subdir }}
         run: |
           set -euo pipefail
           if [ -z "${PUBLIC_DOMAIN:-}" ]; then
@@ -83,10 +117,41 @@ jobs:
             exit 1
           fi
           export SSL_CERT_ROOT="${SSL_CERT_ROOT:-/etc/letsencrypt/live}"
+          case "$SSL_CERT_ROOT" in
+            /root/*|*docker-compose*)
+              echo "::error::SSL_CERT_ROOT must be a path inside the NPM container (default /etc/letsencrypt/live), not a path on the Docker host. Unset the Actions variable to use the default."
+              exit 1
+              ;;
+          esac
           export PUBLIC_DOMAIN
-          envsubst '$PUBLIC_DOMAIN $SSL_CERT_ROOT' < deploy/nginx-proxy-site.template > /tmp/ibanify-nginx-site.conf
+          if [ -n "${SSL_CERT_LIVE_SUBDIR_MANUAL:-}" ]; then
+            export SSL_CERT_LIVE_SUBDIR="$SSL_CERT_LIVE_SUBDIR_MANUAL"
+          elif [ -n "${SSL_CERT_LIVE_SUBDIR_DISCOVERED:-}" ]; then
+            export SSL_CERT_LIVE_SUBDIR="$SSL_CERT_LIVE_SUBDIR_DISCOVERED"
+          else
+            echo "::error::No NPM cert folder: set Actions variable SSL_CERT_LIVE_SUBDIR, or set NGINX_PROXY_CONTAINER and create a Proxy Host with SSL for ${PUBLIC_DOMAIN} in NPM (so proxy_host/*.conf references the cert)."
+            exit 1
+          fi
+          envsubst '$PUBLIC_DOMAIN $SSL_CERT_ROOT $SSL_CERT_LIVE_SUBDIR' < deploy/nginx-proxy-site.template > ibanify-nginx-site.conf
           echo "--- rendered vhost (no keys shown) ---"
-          grep -v ssl_certificate_key /tmp/ibanify-nginx-site.conf | head -40
+          grep -v ssl_certificate_key ibanify-nginx-site.conf | head -40
+
+      - name: Ensure deploy directory on server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: mkdir -p "${{ secrets.DEPLOY_PATH }}"
+
+      - name: Sync compose file to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: docker-compose.prod.yml
+          target: ${{ secrets.DEPLOY_PATH }}/
 
       - name: Pull and start IBANify stack
         uses: appleboy/ssh-action@v1.2.0
@@ -105,15 +170,44 @@ jobs:
             docker compose -f docker-compose.prod.yml pull
             docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
-      - name: Copy nginx vhost to server
+      - name: Reset nginx vhost staging file on server
+        if: vars.DEPLOY_NGINX_SITE == 'true'
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: sudo rm -rf /tmp/ibanify-nginx-site.conf /tmp/ibanify-github-vhost.conf
+
+      - name: Upload nginx vhost to server (staging in /tmp)
         if: vars.DEPLOY_NGINX_SITE == 'true'
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: /tmp/ibanify-nginx-site.conf
-          target: ${{ secrets.NGINX_VHOST_REMOTE_PATH }}
+          source: ibanify-nginx-site.conf
+          target: /tmp
+          overwrite: true
+
+      - name: Install nginx vhost on server
+        if: vars.DEPLOY_NGINX_SITE == 'true'
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            DEST='${{ vars.NGINX_VHOST_REMOTE_PATH }}'
+            if [ -z "$DEST" ]; then
+              echo "Set repository variable NGINX_VHOST_REMOTE_PATH (Settings → Secrets and variables → Actions → Variables)."
+              exit 1
+            fi
+            sudo mkdir -p "$(dirname "$DEST")"
+            sudo install -m 644 /tmp/ibanify-nginx-site.conf "$DEST"
+            rm -f /tmp/ibanify-nginx-site.conf
 
       - name: Reload nginx reverse proxy
         if: vars.DEPLOY_NGINX_SITE == 'true' && vars.NGINX_PROXY_CONTAINER != ''
