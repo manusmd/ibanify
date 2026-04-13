@@ -1,4 +1,4 @@
-package com.manuweb.ibanifycore.controllers;
+package com.manuweb.ibanifycore.exception;
 
 import com.manuweb.ibanifycore.entities.ApiErrorResponse;
 import com.manuweb.ibanifycore.service.iban.InvalidIbanInputException;

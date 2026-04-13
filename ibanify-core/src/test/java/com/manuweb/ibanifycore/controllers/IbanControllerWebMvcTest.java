@@ -8,6 +8,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.manuweb.ibanifycore.config.I18nConfiguration;
 import com.manuweb.ibanifycore.entities.ValidateIbanRequest;
+import com.manuweb.ibanifycore.exception.GlobalExceptionHandler;
 import com.manuweb.ibanifycore.entities.ValidateIbanResponse;
 import com.manuweb.ibanifycore.service.iban.IbanValidationService;
 import java.util.List;
